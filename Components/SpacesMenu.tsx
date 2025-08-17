@@ -9,6 +9,8 @@ export function SpacesMenu() {
   const { data: publicSpaces, isPending: publicSpacesPending } = useSpaces({ mode: 'public' });
   const { data: privateSpaces, isPending: privateSpacesPending } = useSpaces({ mode: 'private' });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  console.log('privateSpaces: ', (privateSpaces as any)?.[0]?.id);
   const isLoading = publicSpacesPending || privateSpacesPending;
 
   if (isLoading) {

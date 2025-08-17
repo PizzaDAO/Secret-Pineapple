@@ -11,6 +11,12 @@ export class Project extends Entity.Class<Project>('Project')({
   avatar: Type.Relation(Image),
 }) {}
 
+export class Store extends Entity.Class<Store>('Store')({
+  name: Type.String,
+  description: Type.optional(Type.String),
+  logo: Type.Relation(Image),
+}) {}
+
 export class ReceiptItem extends Entity.Class<ReceiptItem>('ReceiptItem')({
   name: Type.String,
   quantity: Type.Number,

@@ -94,7 +94,7 @@ function PrivateSpace() {
   const { name, ready, id: spaceId } = useSpace({ mode: 'private' });
   const { data: receipts } = useQuery(Receipt, { mode: 'private' });
   const { data: receiptItems } = useQuery(ReceiptItem, { mode: 'private' }); // Add this line
-  const { data: publicSpaces } = useSpaces({ mode: 'public' });
+  //const { data: publicSpaces } = useSpaces({ mode: 'public' });
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const createReceipt = useCreateEntity(Receipt);
   //const createReceipt = useCreateEntity(Receipt, {space: "5330ea1e-41e1-4d66-90af-74caaa9dd57b"});
@@ -118,10 +118,6 @@ function PrivateSpace() {
   console.log('authenticated', authenticated)
   console.log('identity', identity)
   console.log('receipts', receipts)
-
-  const { data, invalidEntities, deleted } = useQuery(Receipt, { mode: 'private' });
-  console.log('data', data);
-  console.log('invalidEntities', invalidEntities);
 
   const { listInvitations } = useHypergraphApp();
   const [inviteAddress, setInviteAddress] = useState('');
@@ -226,6 +222,8 @@ function PrivateSpace() {
       alert('Space not ready');
       return;
     }
+
+    console.log('Current space:', currentSpace);
 
     try {
       await inviteToSpace({

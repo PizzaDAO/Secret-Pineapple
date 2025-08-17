@@ -56,7 +56,7 @@ export function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   };
   const handleLogout = () => {
     logout();
-    navigation.push('/login');
+    navigation.push('/');
   };
 
   return (
@@ -84,9 +84,6 @@ export function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
                   )}
                 </NavigationMenuItem>
               </NavigationMenuList>
-
-              <LoginButton />
-
 
             </NavigationMenu>
 
