@@ -6,6 +6,13 @@ import { useHypergraphAuth, useSpaces, HypergraphSpaceProvider, useQuery, useSpa
 import { Button } from '@/Components/ui/button';
 import { Store, StoreItem } from '@/app/schema';
 
+type StoreItemType = {
+    id: string;
+    name: string;
+    price: number; 
+    color?: string;
+};
+
 export default function DashboardWrapper() {
     const { data: privateSpaces, isPending: privateSpacesPending } = useSpaces({ mode: 'private' });
     const isLoading = privateSpacesPending;
@@ -40,7 +47,7 @@ function DashboardPage() {
     const { data: storeItems } = useQuery(StoreItem, { mode: 'private' });
     const [showAddItemModal, setShowAddItemModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedItem, setSelectedItem] = useState<StoreItemType | null>(null);
 
     // Redirect if not authenticated
     if (!authenticated) {
@@ -56,7 +63,7 @@ function DashboardPage() {
         setShowAddItemModal(true);
     };
 
-    const handleItemClick = (item) => {
+    const handleItemClick = (item: StoreItemType) => {
         setSelectedItem(item);
         setShowOrderModal(true);
     };

@@ -22,7 +22,7 @@ export default function UserPaymentPage() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Your wallet address (replace with your actual wallet address)
-    const MERCHANT_WALLET = "0x742d35Cc6634C0532925a3b8D39c8bC0C1b4a41E";
+    const MERCHANT_WALLET = "0xa9373B33FF1D134ADd7779a20Da39DB37C4811Ea";
 
     useEffect(() => {
         // Get order details from URL parameters
@@ -106,10 +106,14 @@ export default function UserPaymentPage() {
             });
 
             console.log('Transaction sent:', txHash);
-            alert(`Payment successful! Transaction hash: ${txHash}`);
             
-            // You can redirect to a success page or update the UI
-            // window.location.href = '/payment-success';
+            // Store wallet addresses for receipt creation
+            localStorage.setItem('userWalletAddress', account);
+            localStorage.setItem('merchantWalletAddress', MERCHANT_WALLET);
+            
+            // Redirect to success page with payment details
+            const successUrl = `/payment-success?item=${encodeURIComponent(JSON.stringify(item))}&store=${encodeURIComponent(storeName)}&txHash=${txHash}&timestamp=${Date.now()}`;
+            window.location.href = successUrl;
 
         } catch (error) {
             console.error('Payment failed:', error);

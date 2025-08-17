@@ -47,10 +47,11 @@ export function SpacesMenu() {
           )}
         </li>
 
-        {/* Separator */}
+        {/* Separator 
         <li className="border-t border-border my-2" />
+        */}
 
-        {/* Public Spaces Section */}
+        {/* Public Spaces Section 
         <li>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Public Spaces</div>
           {publicSpaces && publicSpaces.length > 0 ? (
@@ -70,6 +71,7 @@ export function SpacesMenu() {
             <div className="text-sm text-muted-foreground p-2">No public spaces found</div>
           )}
         </li>
+        */}
       </ul>
     </NavigationMenuContent>
   );
