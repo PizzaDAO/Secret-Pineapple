@@ -17,6 +17,12 @@ export class Store extends Entity.Class<Store>('Store')({
   logo: Type.Relation(Image),
 }) {}
 
+export class StoreItem extends Entity.Class<StoreItem>('StoreItem')({
+  name: Type.String,
+  price: Type.Number,
+  color: Type.optional(Type.String),
+}) {}
+
 export class ReceiptItem extends Entity.Class<ReceiptItem>('ReceiptItem')({
   name: Type.String,
   quantity: Type.Number,

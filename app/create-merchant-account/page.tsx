@@ -52,7 +52,6 @@ function CreateMerchantAccountPage() {
     const { data: store } = useQuery(Store, { mode: 'private' });
     //console.log('Store data:', store);
 
-
     const createStore = useCreateEntity(Store);
 
     // Redirect if not authenticated
