@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { Layout } from '@/Components/Layout';
 import Providers from './Providers';
 import './globals.css';
+import { PaymentProvider } from '@/contexts/PaymentContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,7 +30,9 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}>
         <Providers>
-          <Layout>{children}</Layout>
+          <PaymentProvider>
+            <Layout>{children}</Layout>
+          </PaymentProvider>
         </Providers>
       </body>
     </html>

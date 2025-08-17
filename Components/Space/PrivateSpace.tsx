@@ -14,7 +14,7 @@ import {
 } from '@graphprotocol/hypergraph-react';
 import { useState, useEffect } from 'react';
 
-import { Receipt, ReceiptItem, SharedReceipt } from '@/app/schema';
+import { Receipt, ReceiptItem, SharedReceipt, Store, StoreItem } from '@/app/schema';
 import { Button } from '../ui/button';
 
 import { useSelector } from '@xstate/store/react';
@@ -93,13 +93,28 @@ function CreateInSharedSpace() {
 function PrivateSpace() {
   const { name, ready, id: spaceId } = useSpace({ mode: 'private' });
   const { data: receipts } = useQuery(Receipt, { mode: 'private' });
-  const { data: receiptItems } = useQuery(ReceiptItem, { mode: 'private' }); // Add this line
-  //const { data: publicSpaces } = useSpaces({ mode: 'public' });
+  const { data: receiptItems } = useQuery(ReceiptItem, { mode: 'private' });
+  const { data: stores } = useQuery(Store, { mode: 'private' });
+  const { data: storeItems } = useQuery(StoreItem, { mode: 'private' });
+  
+  console.log('User receipts:', receipts);
+  console.log('User stores:', stores);
+  console.log('User store items:', storeItems);
+  
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const createReceipt = useCreateEntity(Receipt);
-  //const createReceipt = useCreateEntity(Receipt, {space: "5330ea1e-41e1-4d66-90af-74caaa9dd57b"});
-
   const createReceiptItem = useCreateEntity(ReceiptItem);
+  const createStore = useCreateEntity(Store);
+  const createStoreItem = useCreateEntity(StoreItem);
+
+  // Store form states
+  const [storeName, setStoreName] = useState<string>('');
+  const [storeDescription, setStoreDescription] = useState<string>('');
+  
+  // Store item form states
+  const [storeItemName, setStoreItemName] = useState<string>('');
+  const [storeItemPrice, setStoreItemPrice] = useState<number>();
+  const [storeItemColor, setStoreItemColor] = useState<string>('');
 
   const [receiptDate, setReceiptDate] = useState<Date>();
   const [receiptTotal, setReceiptTotal] = useState<number>();
@@ -257,9 +272,46 @@ function PrivateSpace() {
     }
   };
 
+  const handleStoreSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!storeName.trim()) {
+      alert('Please enter a store name');
+      return;
+    }
+
+    const result = createStore({
+      name: storeName,
+      description: storeDescription || undefined,
+      // logo: undefined, // Add logo handling if needed
+    });
+    console.log('Store created:', result);
+
+    setStoreName('');
+    setStoreDescription('');
+  };
+
+  const handleStoreItemSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!storeItemName.trim() || storeItemPrice === undefined) {
+      alert('Please fill in required fields');
+      return;
+    }
+
+    const result = createStoreItem({
+      name: storeItemName,
+      price: storeItemPrice,
+      color: storeItemColor || undefined,
+    });
+    console.log('Store item created:', result);
+
+    setStoreItemName('');
+    setStoreItemPrice(undefined);
+    setStoreItemColor('');
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
           <p className="text-slate-600 mt-1 text-sm">Private Space</p>
@@ -268,9 +320,10 @@ function PrivateSpace() {
           <p className="text-muted-foreground mt-6">Manage your private projects and publish them to public spaces</p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Create Project Form */}
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Create Forms Column */}
           <div className="space-y-6">
+            {/* Create Receipt Form */}
             <div className="bg-card border rounded-lg p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-card-foreground mb-4">Create New Receipt</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -431,6 +484,108 @@ function PrivateSpace() {
               </form>
             </div>
 
+            {/* Create Store Form */}
+            <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-card-foreground mb-4">Create New Store</h2>
+              <form onSubmit={handleStoreSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="store-name" className="text-sm font-medium text-card-foreground">
+                    Store Name
+                  </label>
+                  <input
+                    id="store-name"
+                    type="text"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="Enter store name..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="store-description" className="text-sm font-medium text-card-foreground">
+                    Description (Optional)
+                  </label>
+                  <textarea
+                    id="store-description"
+                    value={storeDescription}
+                    onChange={(e) => setStoreDescription(e.target.value)}
+                    placeholder="Enter description..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    rows={3}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={!storeName.trim()}
+                >
+                  Create Store
+                </Button>
+              </form>
+            </div>
+
+            {/* Create Store Item Form */}
+            <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-card-foreground mb-4">Create New Store Item</h2>
+              <form onSubmit={handleStoreItemSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="item-name" className="text-sm font-medium text-card-foreground">
+                    Item Name
+                  </label>
+                  <input
+                    id="item-name"
+                    type="text"
+                    value={storeItemName}
+                    onChange={(e) => setStoreItemName(e.target.value)}
+                    placeholder="Enter item name..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="item-price" className="text-sm font-medium text-card-foreground">
+                    Price
+                  </label>
+                  <input
+                    id="item-price"
+                    type="number"
+                    step="0.01"
+                    value={storeItemPrice || ''}
+                    onChange={(e) => setStoreItemPrice(parseFloat(e.target.value))}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="item-color" className="text-sm font-medium text-card-foreground">
+                    Color (Optional)
+                  </label>
+                  <input
+                    id="item-color"
+                    type="text"
+                    value={storeItemColor}
+                    onChange={(e) => setStoreItemColor(e.target.value)}
+                    placeholder="Enter color..."
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={!storeItemName.trim() || storeItemPrice === undefined}
+                >
+                  Create Store Item
+                </Button>
+              </form>
+            </div>
+
             {/* Add Invite Section */}
             <div className="bg-card border rounded-lg p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-card-foreground mb-4">Invite to Space</h2>
@@ -459,7 +614,7 @@ function PrivateSpace() {
             </div>
           </div>
 
-          {/* Addresses List */}
+          {/* Your Receipts Column */}
           <div className="space-y-6">
             <div className="bg-card border rounded-lg p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-card-foreground mb-4">
@@ -582,7 +737,7 @@ function PrivateSpace() {
               )}
             </div>
 
-            {/* Add Invitations Section */}
+            {/* Pending Invitations Section */}
             <div className="bg-card border rounded-lg p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-card-foreground mb-4">
                 Pending Invitations ({invitations?.length || 0})
@@ -619,6 +774,120 @@ function PrivateSpace() {
               ) : (
                 <div className="text-center py-4">
                   <p className="text-muted-foreground text-sm">No pending invitations</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stores and Store Items Column */}
+          <div className="space-y-6">
+            {/* Your Stores */}
+            <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-card-foreground mb-4">
+                Your Stores ({stores?.length || 0})
+              </h2>
+
+              {stores && stores.length > 0 ? (
+                <div className="space-y-4">
+                  {stores.map((store) => (
+                    <div key={store.id} className="border border-border rounded-lg p-4 bg-background">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium text-foreground">{store.name}</h3>
+                          <Button
+                            onClick={() => deleteEvent(store.id)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                        
+                        {store.description && (
+                          <p className="text-sm text-muted-foreground">{store.description}</p>
+                        )}
+                        
+                        <p className="text-xs text-muted-foreground font-mono">ID: {store.id}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">
+                    <svg
+                      className="mx-auto h-12 w-12 mb-4 opacity-50"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-muted-foreground">No stores created yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Create your first store using the form</p>
+                </div>
+              )}
+            </div>
+
+            {/* Your Store Items */}
+            <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-card-foreground mb-4">
+                Your Store Items ({storeItems?.length || 0})
+              </h2>
+
+              {storeItems && storeItems.length > 0 ? (
+                <div className="space-y-4">
+                  {storeItems.map((item) => (
+                    <div key={item.id} className="border border-border rounded-lg p-4 bg-background">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium text-foreground">{item.name}</h3>
+                          <Button
+                            onClick={() => deleteEvent(item.id)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-primary">${item.price.toFixed(2)}</span>
+                          {item.color && (
+                            <span className="text-sm text-muted-foreground">Color: {item.color}</span>
+                          )}
+                        </div>
+                        
+                        <p className="text-xs text-muted-foreground font-mono">ID: {item.id}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-2">
+                    <svg
+                      className="mx-auto h-12 w-12 mb-4 opacity-50"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-muted-foreground">No store items created yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Create your first item using the form</p>
                 </div>
               )}
             </div>

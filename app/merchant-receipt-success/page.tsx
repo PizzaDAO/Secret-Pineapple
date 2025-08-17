@@ -3,22 +3,11 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/Components/ui/button';
-import { usePayment } from '@/contexts/PaymentContext';
 import { useHypergraphAuth, useSpaces, HypergraphSpaceProvider, useQuery, useCreateEntity, useSpace } from '@graphprotocol/hypergraph-react';
+
 import { Receipt } from '@/app/schema';
 import { useSelector } from '@xstate/store/react';
 
-
-interface PaymentData {
-    item: {
-        name: string;
-        price: string;
-        color?: string;
-    };
-    storeName: string;
-    txHash: string;
-    timestamp: number;
-}
 
 export default function PrivateSpaceWrapper() {
     const { data: privateSpaces, isPending: privateSpacesPending } = useSpaces({ mode: 'private' });
@@ -32,6 +21,7 @@ export default function PrivateSpaceWrapper() {
         );
     }
 
+
     if (!privateSpaces || privateSpaces.length === 0) {
         return (
             <ul className="grid w-[300px] gap-3 p-4">
@@ -42,20 +32,32 @@ export default function PrivateSpaceWrapper() {
 
     console.log('privateSpaces: ', privateSpaces?.[0]?.id);
 
+
     return (
         <HypergraphSpaceProvider space={privateSpaces?.[0]?.id}>
-            <PaymentSuccessPage />
+            <MerchantReceiptSuccessPage />
         </HypergraphSpaceProvider>
     );
 }
 
-function PaymentSuccessPage() {
+interface PaymentData {
+    item: {
+        name: string;
+        price: string;
+        color?: string;
+    };
+    storeName: string;
+    txHash: string;
+    timestamp: number;
+}
+
+function MerchantReceiptSuccessPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { addSuccessfulPayment } = usePayment();
     const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
     const [receiptSaved, setReceiptSaved] = useState(false);
     const processedRef = useRef(false);
+
 
     const { name, ready, id: spaceId } = useSpace({ mode: 'private' });
     const { authenticated, identity } = useHypergraphAuth();
@@ -63,16 +65,11 @@ function PaymentSuccessPage() {
     const { data: stores } = useQuery(Receipt, { mode: 'private' });
     const createReceipt = useCreateEntity(Receipt);
 
-    console.log('Creating user receipt for spaceId:', spaceId);
-    //const { authenticated, identity } = useHypergraphAuth();
 
-    const { data: receipts } = useQuery(Receipt, { mode: 'private' });
-    console.log('User receipts:', receipts);
-
-    const createUserReceipt = useCallback(async (data: PaymentData) => {
+    const createMerchantReceipt = useCallback(async (data: PaymentData) => {
         try {
-            // Create receipt in user's private space using Hypergraph
-            console.log('Creating user receipt:', data);
+            // Create receipt in merchant's private space using Hypergraph
+            console.log('Creating merchant receipt:', data);
 
             const result = createReceipt({
                 date: new Date(),
@@ -83,38 +80,11 @@ function PaymentSuccessPage() {
             });
 
             console.log('User receipt created:', result);
-
+            
             setReceiptSaved(true);
 
-            // After user receipt is created, trigger merchant receipt creation
-            // This should redirect the merchant flow to create their receipt
-            triggerMerchantReceiptCreation(data);
-
         } catch (error) {
-            console.error('Error creating user receipt:', error);
-        }
-    }, []);
-
-    const triggerMerchantReceiptCreation = useCallback(async (data: PaymentData) => {
-        try {
-            // Use store name as merchant identifier instead of localStorage
-            const response = await fetch('/api/merchant-notifications', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    merchantAddress: data.storeName, // Use store name as identifier
-                    paymentData: data,
-                    timestamp: Date.now()
-                })
-            });
-
-            if (response.ok) {
-                console.log('Merchant notification sent successfully');
-            }
-        } catch (error) {
-            console.error('Error sending merchant notification:', error);
+            console.error('Error creating merchant receipt:', error);
         }
     }, []);
 
@@ -139,22 +109,8 @@ function PaymentSuccessPage() {
                 };
                 setPaymentData(data);
 
-                // Add to global state as successful payment
-                // This will trigger both user and merchant receipt creation
-                const paymentWithAddresses = {
-                    ...data,
-                    userAddress: localStorage.getItem('userWalletAddress') || '',
-                    merchantAddress: localStorage.getItem('merchantWalletAddress') || '',
-                    status: 'successful'
-                };
-
-                // This should trigger global state update for both flows
-                addSuccessfulPayment(paymentWithAddresses);
-
-                // Create user receipt immediately (since we're in user context)
-                console.log('Creating user receipt with data:', data);
-                createUserReceipt(data);
-                console.log('User receipt created');
+                // Create merchant receipt immediately
+                createMerchantReceipt(data);
 
                 // Mark as processed
                 processedRef.current = true;
@@ -163,50 +119,50 @@ function PaymentSuccessPage() {
                 console.error('Error parsing payment data:', error);
             }
         }
-    }, [searchParams]);
+    }, [searchParams, createMerchantReceipt]);
 
-    const handleViewReceipt = () => {
-        router.push('/my-receipts');
+    const handleViewReceipts = () => {
+        router.push('/merchant-receipts');
     };
 
-    const handleBackToStore = () => {
-        router.push('/dashboard');
+    const handleBackToPayments = () => {
+        router.push('/payment');
     };
 
     if (!paymentData) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-lg">Loading payment confirmation...</div>
+                <div className="text-lg">Loading merchant receipt...</div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-yellow-400 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-green-400 flex flex-col items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
-                {/* Header with Pineapple */}
-                <div className="bg-yellow-400 text-center p-8 relative">
-                    <div className="text-6xl mb-4">🍍</div>
-                    <h1 className="text-4xl font-bold text-black mb-2">Thank You!</h1>
-                    <p className="text-green-600 font-semibold">Your secret is safe with us.</p>
+                {/* Header */}
+                <div className="bg-green-400 text-center p-8 relative">
+                    <div className="text-6xl mb-4">💰</div>
+                    <h1 className="text-4xl font-bold text-black mb-2">Payment Received!</h1>
+                    <p className="text-green-800 font-semibold">Merchant Receipt Created</p>
                 </div>
 
                 {/* Receipt Section */}
                 <div className="p-6 bg-white">
                     <div className="text-center mb-6">
-                        <h2 className="text-gray-400 text-lg mb-4">Your Receipt</h2>
+                        <h2 className="text-gray-400 text-lg mb-4">Merchant Receipt</h2>
 
                         <div className="bg-gray-100 rounded-xl p-4 mb-6">
                             <div className="flex items-center gap-4">
                                 <div
                                     className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold text-black border-2 border-black"
-                                    style={{ backgroundColor: paymentData.item.color || '#FFD700' }}
+                                    style={{ backgroundColor: paymentData.item.color || '#90EE90' }}
                                 >
                                     1
                                 </div>
                                 <div className="flex-1 text-left">
                                     <h3 className="font-bold text-lg">{paymentData.item.name}</h3>
-                                    <p className="text-lg font-semibold">{paymentData.item.price}</p>
+                                    <p className="text-lg font-semibold">${paymentData.item.price}</p>
                                 </div>
                             </div>
                         </div>
@@ -221,30 +177,30 @@ function PaymentSuccessPage() {
                         {/* Receipt Status */}
                         {!receiptSaved && (
                             <div className="text-blue-600 mb-4">
-                                Saving receipt...
+                                Creating merchant receipt...
                             </div>
                         )}
 
                         {receiptSaved && (
                             <div className="text-green-600 mb-4">
-                                ✅ Receipt saved securely
+                                ✅ Merchant receipt saved securely
                             </div>
                         )}
                     </div>
 
                     <Button
-                        onClick={handleViewReceipt}
+                        onClick={handleViewReceipts}
                         disabled={!receiptSaved}
                         className="w-full bg-black text-white py-4 rounded-full text-lg font-bold mb-3 hover:bg-gray-800"
                     >
-                        View my receipt
+                        View merchant receipts
                     </Button>
 
                     <Button
-                        onClick={handleBackToStore}
+                        onClick={handleBackToPayments}
                         className="w-full bg-white text-black border-2 border-black py-4 rounded-full text-lg font-bold hover:bg-gray-50"
                     >
-                        Back to store
+                        Back to payments
                     </Button>
                 </div>
             </div>

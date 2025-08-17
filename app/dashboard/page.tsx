@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePayment } from '@/contexts/PaymentContext';
 import { useHypergraphAuth, useSpaces, HypergraphSpaceProvider, useQuery, useSpace, useCreateEntity } from '@graphprotocol/hypergraph-react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/Components/ui/button';
 import { Store, StoreItem } from '@/app/schema';
 
@@ -45,9 +47,41 @@ function DashboardPage() {
     const { authenticated } = useHypergraphAuth();
     const { data: store } = useQuery(Store, { mode: 'private' });
     const { data: storeItems } = useQuery(StoreItem, { mode: 'private' });
+    const { pendingPayments, processPendingPayments } = usePayment();
     const [showAddItemModal, setShowAddItemModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState<StoreItemType | null>(null);
+    const [recentSales, setRecentSales] = useState<any[]>([]);
+
+    // Process pending payments when component mounts or pendingPayments changes
+    useEffect(() => {
+        if (pendingPayments.length > 0) {
+            const payments = processPendingPayments();
+            
+            // Create merchant receipts for each pending payment
+            payments.forEach(async (payment) => {
+                try {
+                    console.log('Creating merchant receipt for:', payment);
+                    
+                    // Create receipt in merchant's private space using Hypergraph
+                    // Replace this with your actual Hypergraph calls
+                    
+                    // Add to recent sales for display
+                    setRecentSales(prev => [...prev, {
+                        id: payment.txHash,
+                        itemName: payment.item.name,
+                        price: payment.item.price,
+                        customerAddress: payment.userAddress,
+                        timestamp: payment.timestamp,
+                        txHash: payment.txHash
+                    }]);
+                    
+                } catch (error) {
+                    console.error('Error creating merchant receipt:', error);
+                }
+            });
+        }
+    }, [pendingPayments, processPendingPayments]);
 
     // Redirect if not authenticated
     if (!authenticated) {
@@ -75,27 +109,47 @@ function DashboardPage() {
                 {/* Header */}
                 <div className="bg-white border-b border-gray-200 px-4 py-4">
                     <div className="flex items-center justify-between max-w-7xl mx-auto">
-                        <div className="flex items-center">
-                            <button className="mr-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
-                            <span className="text-lg font-medium">Dashboard</span>
-                        </div>
-                        <h1 className="text-xl font-bold text-center">{storeName}</h1>
-                        <Button
-                            onClick={handleAddItem}
-                            className="bg-white text-black border-2 border-black rounded-full px-6 py-2 hover:bg-gray-50 flex items-center gap-2"
-                        >
-                            <span className="text-lg">+</span>
-                            Add Item
-                        </Button>
+                        <h1 className="text-2xl font-bold">{storeName}</h1>
+                        
+                        {/* Show recent sales notification */}
+                        {recentSales.length > 0 && (
+                            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                                {recentSales.length} new sale(s)!
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Main content */}
                 <div className="p-4">
+                    {/* Recent Sales Section */}
+                    {recentSales.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold mb-4">Recent Sales</h2>
+                            <div className="space-y-2">
+                                {recentSales.map((sale) => (
+                                    <div key={sale.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <p className="font-semibold">{sale.itemName}</p>
+                                                <p className="text-sm text-gray-600">
+                                                    Customer: {sale.customerAddress.slice(0, 8)}...
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold">{sale.price}</p>
+                                                <p className="text-sm text-gray-600">
+                                                    {new Date(sale.timestamp).toLocaleTimeString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Existing store items display */}
                     {storeItems && storeItems.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
                             {storeItems.map((item) => (

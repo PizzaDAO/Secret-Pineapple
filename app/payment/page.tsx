@@ -76,6 +76,37 @@ export default function PaymentPage() {
         router.back();
     };
 
+    useEffect(() => {
+        if (!storeName) return;
+
+        const checkForPaymentNotifications = async () => {
+            try {
+                const response = await fetch(`/api/merchant-notifications?merchantAddress=${encodeURIComponent(storeName)}`);
+                const data = await response.json();
+                
+                if (data.notifications && data.notifications.length > 0) {
+                    const notification = data.notifications[0]; // Get the first notification
+                    const paymentData = notification.paymentData;
+                    
+                    // Redirect to merchant receipt creation page
+                    router.push('/merchant-receipt-success?' + new URLSearchParams({
+                        item: JSON.stringify(paymentData.item),
+                        store: paymentData.storeName,
+                        txHash: paymentData.txHash,
+                        timestamp: paymentData.timestamp.toString()
+                    }));
+                }
+            } catch (error) {
+                console.error('Error checking for payment notifications:', error);
+            }
+        };
+
+        // Poll every 2 seconds for notifications
+        const interval = setInterval(checkForPaymentNotifications, 2000);
+        
+        return () => clearInterval(interval);
+    }, [router, storeName]); // Added storeName to dependencies
+
     if (!item) {
         return (
             <div className="min-h-screen bg-yellow-400 flex items-center justify-center">

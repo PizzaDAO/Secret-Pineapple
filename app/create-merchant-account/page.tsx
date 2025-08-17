@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/Components/ui/button';
@@ -43,36 +43,38 @@ export default function PrivateSpaceWrapper() {
 
 function CreateMerchantAccountPage() {
     const { name, ready, id: spaceId } = useSpace({ mode: 'private' });
-
-    console.log('Creating merchant account for spaceId:', spaceId);
     const router = useRouter();
     const { authenticated, identity } = useHypergraphAuth();
-
     const [businessName, setBusinessName] = useState('');
-    const { data: store } = useQuery(Store, { mode: 'private' });
-    //console.log('Store data:', store);
-
+    const { data: stores } = useQuery(Store, { mode: 'private' });
     const createStore = useCreateEntity(Store);
 
-    // Redirect if not authenticated
+    // Move useEffect to the top, before any conditional returns
+    useEffect(() => {
+        if (stores && stores.length > 0) {
+            console.log('Store already exists:', stores);
+            router.push('/dashboard');
+        }
+    }, [stores, router]);
+
+    // Handle authentication redirect with useEffect instead of early return
+    useEffect(() => {
+        if (!authenticated) {
+            router.push('/');
+        }
+    }, [authenticated, router]);
+
+    console.log('Creating merchant account for spaceId:', spaceId);
+
+    // Now you can safely return early for rendering purposes
     if (!authenticated) {
-        router.push('/');
         return null;
     }
-
-
-    if (store.length > 0) {
-        console.log('Store already exists:', store);
-        router.push('/dashboard');
-    }
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         console.log('spaceId:', spaceId);
-        // TODO: Here you would typically save the merchant account data
-        // For now, we'll just log it and redirect
         console.log('Business name:', businessName);
         console.log('User identity:', identity);
 
@@ -82,8 +84,7 @@ function CreateMerchantAccountPage() {
 
         console.log('Create Store Result:', result);
 
-        // Redirect to a dashboard or success page
-        router.push('/dashboard'); // You can change this to wherever you want to redirect
+        router.push('/dashboard'); 
     };
 
     return (
